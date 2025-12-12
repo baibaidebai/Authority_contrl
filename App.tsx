@@ -6,6 +6,10 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { UserManagement } from './pages/UserManagement';
 import { RoleManagement } from './pages/RoleManagement';
+import { PermissionManagement } from './pages/PermissionManagement';
+import { BusinessAudit } from './pages/BusinessAudit';
+import { BusinessManagement } from './pages/BusinessManagement';
+import { ParamManagement } from './pages/ParamManagement';
 
 const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
@@ -25,6 +29,16 @@ const AppContent: React.FC = () => {
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="roles" element={<RoleManagement />} />
+          <Route path="permissions" element={<PermissionManagement />} />
+          
+          {/* Business Audit Routes */}
+          <Route path="audit/*" element={<BusinessAudit />} />
+
+          {/* Business Management Routes */}
+          <Route path="business/*" element={<BusinessManagement />} />
+
+          {/* Parameter Management */}
+          <Route path="params" element={<ParamManagement />} />
         </Route>
       </Route>
 

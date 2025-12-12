@@ -16,8 +16,7 @@ import {
   HelpCircle,
   User as UserIcon,
   MessageSquare,
-  Cog,
-  Menu
+  Cog
 } from 'lucide-react';
 
 interface MenuItem {
@@ -34,7 +33,9 @@ export const Layout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    'authority': true // Default open
+    'authority': true,
+    'audit': false,
+    'business': false
   });
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -63,7 +64,7 @@ export const Layout: React.FC = () => {
       children: [
         { id: 'user', label: '用户维护', icon: User, path: '/users' },
         { id: 'role', label: '角色维护', icon: Shield, path: '/roles' },
-        { id: 'perm', label: '菜单维护', icon: Lock, path: '/permissions' }, // Placeholder path
+        { id: 'perm', label: '菜单维护', icon: Lock, path: '/permissions' },
       ]
     },
     {
@@ -72,9 +73,9 @@ export const Layout: React.FC = () => {
       icon: CheckCircle,
       badge: 3,
       children: [
-        { id: 'auth_real', label: '实名认证审核', icon: CheckCircle, path: '#' },
-        { id: 'auth_adv', label: '广告审核', icon: CheckCircle, path: '#' },
-        { id: 'auth_proj', label: '项目审核', icon: CheckCircle, path: '#' },
+        { id: 'auth_real', label: '实名认证审核', icon: CheckCircle, path: '/audit/real-name' },
+        { id: 'auth_adv', label: '广告审核', icon: CheckCircle, path: '/audit/advertisement' },
+        { id: 'auth_proj', label: '项目审核', icon: CheckCircle, path: '/audit/project' },
       ]
     },
     {
@@ -83,20 +84,20 @@ export const Layout: React.FC = () => {
       icon: Grid,
       badge: 7,
       children: [
-        { id: 'cert', label: '资质维护', icon: Grid, path: '#' },
-        { id: 'type', label: '分类管理', icon: Grid, path: '#' },
-        { id: 'process', label: '流程管理', icon: Grid, path: '#' },
-        { id: 'ads', label: '广告管理', icon: Grid, path: '#' },
-        { id: 'msg', label: '消息模板', icon: Grid, path: '#' },
-        { id: 'proj_type', label: '项目分类', icon: Grid, path: '#' },
-        { id: 'tag', label: '项目标签', icon: Grid, path: '#' },
+        { id: 'cert', label: '资质维护', icon: Grid, path: '/business/cert' },
+        { id: 'type', label: '分类管理', icon: Grid, path: '/business/type' },
+        { id: 'process', label: '流程管理', icon: Grid, path: '/business/process' },
+        { id: 'ads', label: '广告管理', icon: Grid, path: '/business/ads' },
+        { id: 'msg', label: '消息模板', icon: Grid, path: '/business/message' },
+        { id: 'proj_type', label: '项目分类', icon: Grid, path: '/business/project-type' },
+        { id: 'tag', label: '项目标签', icon: Grid, path: '/business/tag' },
       ]
     },
     {
       id: 'param',
       label: '参数管理',
       icon: List,
-      path: '/params' // Placeholder
+      path: '/params'
     }
   ];
 
@@ -153,13 +154,16 @@ export const Layout: React.FC = () => {
       {/* Main Container */}
       <div className="flex flex-1 pt-[50px]">
         {/* Sidebar */}
-        <aside className="fixed left-0 top-[50px] bottom-0 w-[240px] bg-white border-r border-gray-200 overflow-y-auto">
+        <aside className="fixed left-0 top-[50px] bottom-0 w-[240px] bg-white border-r border-gray-200 overflow-y-auto z-40">
           <div className="py-2">
             <ul className="space-y-1">
               {menuItems.map(item => {
                 const isActive = item.path === location.pathname;
                 const isExpanded = expandedMenus[item.id];
                 const hasChildren = item.children && item.children.length > 0;
+                
+                // Check if any child is active to highlight parent
+                const isChildActive = item.children?.some(child => location.pathname.startsWith(child.path || 'impossible_path'));
 
                 return (
                   <li key={item.id} className="px-2">
@@ -168,7 +172,7 @@ export const Layout: React.FC = () => {
                       onClick={() => hasChildren ? toggleMenu(item.id) : (item.path && navigate(item.path))}
                       className={`
                         flex items-center justify-between px-3 py-2.5 rounded-md cursor-pointer text-sm font-medium transition-colors
-                        ${isActive && !hasChildren ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}
+                        ${(isActive || isChildActive) && !hasChildren ? 'bg-indigo-50 text-indigo-700' : 'text-gray-700 hover:bg-gray-100'}
                       `}
                     >
                       <div className="flex items-center gap-3">
@@ -191,14 +195,14 @@ export const Layout: React.FC = () => {
                     {hasChildren && isExpanded && (
                       <ul className="mt-1 ml-4 border-l border-gray-200 space-y-1 pl-2">
                         {item.children?.map(child => {
-                          const isChildActive = child.path === location.pathname;
+                          const isCurrent = child.path === location.pathname;
                           return (
                             <li key={child.id}>
                               <Link
                                 to={child.path || '#'}
                                 className={`
                                   flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors
-                                  ${isChildActive ? 'text-indigo-600 bg-indigo-50 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
+                                  ${isCurrent ? 'text-indigo-600 bg-indigo-50 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}
                                 `}
                               >
                                 <child.icon className="h-3.5 w-3.5" />
