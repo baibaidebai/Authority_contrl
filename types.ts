@@ -23,3 +23,11 @@ export interface AuthState {
   role: Role | null;
   isAuthenticated: boolean;
 }
+
+export interface AuthContextType extends AuthState {
+  login: (name: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  hasPermission: (perm: string) => boolean;
+  refreshSession: () => void;
+  impersonate: (userId: number) => Promise<boolean>;
+}

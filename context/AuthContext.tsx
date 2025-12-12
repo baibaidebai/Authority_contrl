@@ -1,13 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Role, AuthState } from '../types';
-import { findUserByCredentials, getRoleById } from '../services/mockDb';
-
-interface AuthContextType extends AuthState {
-  login: (name: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  hasPermission: (perm: string) => boolean;
-  refreshSession: () => void;
-}
+import { User, Role, AuthState, AuthContextType } from '../types';
+import { findUserByCredentials, getRoleById, loginAsUser } from '../services/mockDb';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -55,6 +48,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const impersonate = async (userId: number): Promise<boolean> => {
+    try {
+        const targetUser = await loginAsUser(userId);
+        if (targetUser) {
+            localStorage.setItem('rbac_session_user', JSON.stringify(targetUser));
+            await refreshUserRole(targetUser);
+            // Optional: force reload to clean reset UI state
+            window.location.href = '/'; 
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Impersonation error:", error);
+        return false;
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('rbac_session_user');
     setUser(null);
@@ -83,7 +93,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       login, 
       logout, 
       hasPermission,
-      refreshSession
+      refreshSession,
+      impersonate
     }}>
       {children}
     </AuthContext.Provider>

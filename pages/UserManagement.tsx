@@ -4,10 +4,10 @@ import { getUsers, getRoles, saveUser, updateUserRole, deleteUser } from '../ser
 import { User, Role } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { UserPlus, Shield, Trash2 } from 'lucide-react';
+import { UserPlus, Shield, Trash2, LogIn } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
-  const { hasPermission } = useAuth();
+  const { hasPermission, role, user: currentUser, impersonate } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -17,6 +17,9 @@ export const UserManagement: React.FC = () => {
   const [newUserName, setNewUserName] = useState('');
   const [newUserPass, setNewUserPass] = useState('');
   const [newUserRoleId, setNewUserRoleId] = useState<string>('');
+
+  // Check if current user is Admin (by Role Name) for special features
+  const isAdmin = role?.name === '管理员';
 
   useEffect(() => {
     loadData();
@@ -68,6 +71,12 @@ export const UserManagement: React.FC = () => {
         alert("删除失败，请重试");
       }
     }
+  };
+
+  const handleImpersonate = async (targetUserId: number, targetUserName: string) => {
+      if (window.confirm(`确认要切换到用户 "${targetUserName}" 的身份吗？\n\n这将会刷新页面并以该用户登录。若要返回管理员身份，请退出登录并重新登录。`)) {
+          await impersonate(targetUserId);
+      }
   };
 
   // Permission check using specific database permission name
@@ -143,13 +152,18 @@ export const UserManagement: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map(user => (
-                <tr key={user.id}>
+                <tr key={user.id} className={user.id === currentUser?.id ? "bg-indigo-50" : ""}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">
                         {user.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="ml-4 text-sm font-medium text-gray-900">{user.name}</div>
+                      <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                              {user.name} 
+                              {user.id === currentUser?.id && <span className="text-xs text-indigo-600 ml-2">(您)</span>}
+                          </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -167,11 +181,22 @@ export const UserManagement: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     <div className="flex items-center space-x-4">
+                      {/* Impersonate Button - Only for Admin and not on self */}
+                      {isAdmin && user.id !== currentUser?.id && (
+                          <button
+                            onClick={() => handleImpersonate(user.id, user.name)}
+                            className="text-indigo-600 hover:text-indigo-900 transition-colors flex items-center"
+                            title="切换身份登录"
+                          >
+                             <LogIn className="h-4 w-4" />
+                          </button>
+                      )}
+
                       {canModifyUser && (
                         <div className="flex items-center space-x-2">
                           <Shield className="h-4 w-4 text-gray-400" />
                           <select 
-                            className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="text-sm border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 w-32"
                             value={user.roleIds?.[0] || ''}
                             onChange={(e) => handleRoleChange(user.id, e.target.value)}
                           >
@@ -193,7 +218,7 @@ export const UserManagement: React.FC = () => {
                         </button>
                       )}
                       
-                      {!canModifyUser && !canDeleteUser && (
+                      {!canModifyUser && !canDeleteUser && !isAdmin && (
                         <span className="text-gray-400 italic">仅查看</span>
                       )}
                     </div>

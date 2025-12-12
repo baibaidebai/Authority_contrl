@@ -365,6 +365,34 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Impersonate User (Login As) - No Password Required
+// NOTE: In a real production app, this endpoint MUST be protected by Admin-only middleware/token check.
+app.post('/api/login-as', async (req, res) => {
+    const { userId } = req.body;
+    try {
+        const [users] = await db.query('SELECT * FROM User WHERE ID = ?', [userId]);
+        
+        if (users.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = users[0];
+        const [roles] = await db.query('SELECT role_ID FROM UserRole WHERE user_ID = ?', [user.ID]);
+        const roleIds = roles.map(r => r.role_ID);
+        
+        console.log(`Impersonation successful: Switched to user ${user.name}`);
+        res.json({ 
+            id: user.ID,
+            name: user.name,
+            roleIds: roleIds
+        });
+
+    } catch(e) {
+        console.error("Impersonation Error:", e);
+        res.status(500).json({error: e.message});
+    }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`RBAC Server running on port ${PORT}`);

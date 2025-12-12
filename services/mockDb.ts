@@ -112,6 +112,15 @@ export const findUserByCredentials = async (name: string, password: string): Pro
   return response.json();
 };
 
+// New function for impersonation
+export const loginAsUser = async (userId: number): Promise<User> => {
+    return request<User>('/login-as', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+    });
+};
+
 export const getRoleById = async (id: number): Promise<Role | undefined> => {
   const response = await fetch(`${API_BASE}/roles/${id}`);
   if (response.status === 404) return undefined;
