@@ -6,7 +6,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { UserManagement } from './pages/UserManagement';
 import { RoleManagement } from './pages/RoleManagement';
-import { OperationDemo } from './pages/OperationDemo';
 
 const ProtectedRoute = () => {
   const { isAuthenticated } = useAuth();
@@ -26,7 +25,6 @@ const AppContent: React.FC = () => {
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="roles" element={<RoleManagement />} />
-          <Route path="demo" element={<OperationDemo />} />
         </Route>
       </Route>
 

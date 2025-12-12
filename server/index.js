@@ -26,8 +26,6 @@ app.get('/', (req, res) => {
 });
 
 // --- Database Auto-Seeding ---
-// Ensures that the default 'admin' user and '管理员' role have the correct permissions
-// even if the user only ran the table creation script without the test data script.
 async function initializeDatabase() {
   console.log('Checking database integrity...');
   const conn = await db.getConnection();
@@ -44,25 +42,39 @@ async function initializeDatabase() {
       adminRoleId = adminRoles[0].ID;
     }
 
-    // 2. Ensure '管理员' has ALL permissions
-    const [existingPerms] = await conn.query("SELECT count(*) as count FROM RolePermission WHERE role_ID = ?", [adminRoleId]);
-    
-    if (existingPerms[0].count === 0) {
-      console.log("Seeding Admin permissions (found 0)...");
-      const [allPerms] = await conn.query("SELECT ID FROM Permission");
-      
-      if (allPerms.length > 0) {
-        const values = allPerms.map(p => [adminRoleId, p.ID]);
-        await conn.query("INSERT INTO RolePermission (role_ID, permission_ID) VALUES ?", [values]);
-        console.log(`Successfully assigned ${values.length} permissions to '管理员' role.`);
-      } else {
-          console.warn("No permissions found in Permission table. Please check if CreatTable.txt was executed.");
-      }
-    } else {
-        console.log("Admin permissions checks passed.");
+    // 2. Ensure Essential Permissions Exist (Complete the set)
+    const essentialPerms = ['修改角色', '删除角色'];
+    // Assuming '角色管理' exists as parent based on CreatTable.txt, usually ID 6
+    // We try to find '角色管理' ID dynamically
+    const [roleMgrPerm] = await conn.query("SELECT ID FROM Permission WHERE name = '角色管理'");
+    let parentId = roleMgrPerm.length > 0 ? roleMgrPerm[0].ID : null;
+
+    for (const permName of essentialPerms) {
+        const [exists] = await conn.query("SELECT ID FROM Permission WHERE name = ?", [permName]);
+        if (exists.length === 0) {
+            console.log(`Seeding missing permission: ${permName}`);
+            await conn.query("INSERT INTO Permission (name, super_ID) VALUES (?, ?)", [permName, parentId]);
+        }
     }
 
-    // 3. Ensure 'admin' user exists
+    // 3. Ensure '管理员' has ALL permissions
+    // We simply delete old mappings for admin and re-insert all to be safe and ensure new perms are added
+    const [allPerms] = await conn.query("SELECT ID FROM Permission");
+    if (allPerms.length > 0) {
+        // Check if admin has all perms
+        const [currentAdminPerms] = await conn.query("SELECT count(*) as count FROM RolePermission WHERE role_ID = ?", [adminRoleId]);
+        if (currentAdminPerms[0].count < allPerms.length) {
+            console.log("Updating Admin permissions to include all available system permissions...");
+            // Use IGNORE to avoid duplicates if partial exist, or DELETE/INSERT strategy
+            // Here we use ON DUPLICATE KEY logic via a loop or batch insert ignore
+            const values = allPerms.map(p => [adminRoleId, p.ID]);
+            // Simple way: clear and re-add for admin (safest for consistency)
+            await conn.query("DELETE FROM RolePermission WHERE role_ID = ?", [adminRoleId]);
+            await conn.query("INSERT INTO RolePermission (role_ID, permission_ID) VALUES ?", [values]);
+        }
+    }
+
+    // 4. Ensure 'admin' user exists
     const [adminUsers] = await conn.query("SELECT ID FROM User WHERE name = 'admin'");
     let adminUserId;
     
@@ -74,7 +86,7 @@ async function initializeDatabase() {
         adminUserId = adminUsers[0].ID;
     }
 
-    // 4. Ensure 'admin' user has '管理员' role
+    // 5. Ensure 'admin' user has '管理员' role
     const [userRoles] = await conn.query("SELECT * FROM UserRole WHERE user_ID = ? AND role_ID = ?", [adminUserId, adminRoleId]);
     
     if (userRoles.length === 0) {
@@ -303,6 +315,32 @@ app.put('/api/roles/:id', async (req, res) => {
             }
         }
 
+        await conn.commit();
+        res.json({ success: true });
+    } catch(e) {
+        await conn.rollback();
+        res.status(500).json({ error: e.message });
+    } finally {
+        conn.release();
+    }
+});
+
+// Delete Role
+app.delete('/api/roles/:id', async (req, res) => {
+    const roleId = req.params.id;
+    const conn = await db.getConnection();
+    try {
+        await conn.beginTransaction();
+        
+        // Prevent deleting '管理员' role to avoid system lockout
+        const [role] = await conn.query("SELECT name FROM Role WHERE ID = ?", [roleId]);
+        if (role.length > 0 && role[0].name === '管理员') {
+            throw new Error("Cannot delete the system default Admin role.");
+        }
+
+        // DB cascade will handle RolePermission and UserRole cleanup
+        await conn.query('DELETE FROM Role WHERE ID = ?', [roleId]);
+        
         await conn.commit();
         res.json({ success: true });
     } catch(e) {

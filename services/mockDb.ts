@@ -68,6 +68,12 @@ export const updateRole = async (id: number, role: Partial<Role>) => {
   });
 };
 
+export const deleteRole = async (id: number) => {
+  return request<{success: boolean}>(`/roles/${id}`, {
+      method: 'DELETE'
+  });
+};
+
 export const getUsers = async (): Promise<User[]> => {
   return request<User[]>('/users');
 };

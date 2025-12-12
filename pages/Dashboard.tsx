@@ -26,7 +26,7 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
           <h3 className="font-bold text-gray-900 mb-2">用户管理</h3>
           <p className="text-sm text-gray-600">
@@ -36,13 +36,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow border-l-4 border-purple-500">
           <h3 className="font-bold text-gray-900 mb-2">角色管理</h3>
           <p className="text-sm text-gray-600">
-            定义系统中的角色，并关联具体的细粒度权限。
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
-          <h3 className="font-bold text-gray-900 mb-2">权限演示</h3>
-          <p className="text-sm text-gray-600">
-            测试不同的权限配置如何动态影响用户界面的功能可用性。
+            定义系统中的角色，并关联具体的细粒度权限（如修改角色、删除角色）。
           </p>
         </div>
       </div>

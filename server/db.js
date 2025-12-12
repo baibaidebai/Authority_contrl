@@ -3,7 +3,7 @@ const mysql = require('mysql2');
 
 const pool = mysql.createPool({
   // Use localhost/127.0.0.1 when running on the same server to avoid firewall/NAT loopback issues
-  host: '127.0.0.1', 
+  host: '101.132.178.161', 
   user: 'Authority_Ctler$123',
   password: 'Authority_Ctler$123',
   database: 'Authority_Contrl_Developer',
@@ -17,7 +17,7 @@ pool.getConnection((err, connection) => {
   if (err) {
     console.error('Database connection failed:', err.code, err.message);
   } else {
-    console.log('Successfully connected to database at 127.0.0.1');
+    console.log('Successfully connected to database at 101.132.178.161');
     connection.release();
   }
 });

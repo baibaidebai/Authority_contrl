@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Shield, Users, Lock, LogOut, LayoutDashboard, Zap } from 'lucide-react';
+import { Shield, Users, Lock, LogOut, LayoutDashboard } from 'lucide-react';
 
 export const Layout: React.FC = () => {
   const { user, role, logout } = useAuth();
@@ -17,7 +17,6 @@ export const Layout: React.FC = () => {
     { label: '首页概览', path: '/', icon: LayoutDashboard },
     { label: '用户管理', path: '/users', icon: Users },
     { label: '角色管理', path: '/roles', icon: Shield },
-    { label: '权限演示', path: '/demo', icon: Zap },
   ];
 
   return (

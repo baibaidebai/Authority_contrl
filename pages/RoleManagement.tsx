@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getRoles, saveRole, updateRole, getPermissions } from '../services/mockDb';
+import { getRoles, saveRole, updateRole, deleteRole, getPermissions } from '../services/mockDb';
 import { Role, PermissionItem } from '../types';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -100,6 +100,21 @@ export const RoleManagement: React.FC = () => {
     }
   };
 
+  const handleDeleteRole = async (roleId: number, roleName: string) => {
+    if (roleName === '管理员') {
+        alert("无法删除系统默认管理员角色");
+        return;
+    }
+    if (window.confirm(`确定要删除角色 "${roleName}" 吗？此操作将移除该角色的所有权限，并可能影响属于该角色的用户。`)) {
+        try {
+            await deleteRole(roleId);
+            await loadData();
+        } catch (error: any) {
+            alert("删除失败: " + error.message);
+        }
+    }
+  };
+
   const handleCancel = () => {
       setShowForm(false);
       setEditingRole(null);
@@ -108,13 +123,12 @@ export const RoleManagement: React.FC = () => {
       setSelectedPerms([]);
   };
 
-  const handleDeleteMock = () => {
-      alert("演示功能：删除角色逻辑可在此扩展。");
-  };
-
+  // Fine-grained permission checks
   const canAddRole = hasPermission('添加角色');
-  // For demo consistency, we assume same permissions govern edit/delete or use '角色管理'
-  const canManageRoles = hasPermission('角色管理') || hasPermission('添加角色');
+  const canEditRole = hasPermission('修改角色');
+  const canDeleteRole = hasPermission('删除角色');
+  // Fallback generic check for viewing the column
+  const canManageRoles = hasPermission('角色管理') || canAddRole || canEditRole || canDeleteRole;
 
   return (
     <div className="space-y-6">
@@ -220,15 +234,20 @@ export const RoleManagement: React.FC = () => {
                      <div className="flex items-center space-x-4">
                         {canManageRoles ? (
                             <>
-                                <button onClick={() => openEditForm(role)} className="text-indigo-600 hover:text-indigo-900 transition-colors" title="编辑权限">
-                                   <Edit className="h-4 w-4" />
-                                </button>
-                                <button onClick={handleDeleteMock} className="text-red-500 hover:text-red-700 transition-colors" title="删除角色">
-                                   <Trash2 className="h-4 w-4" />
-                                </button>
+                                {canEditRole && (
+                                    <button onClick={() => openEditForm(role)} className="text-indigo-600 hover:text-indigo-900 transition-colors" title="编辑权限">
+                                        <Edit className="h-4 w-4" />
+                                    </button>
+                                )}
+                                {canDeleteRole && (
+                                    <button onClick={() => handleDeleteRole(role.id, role.name)} className="text-red-500 hover:text-red-700 transition-colors" title="删除角色">
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                )}
+                                {!canEditRole && !canDeleteRole && <span className="text-gray-300 text-xs">仅查看</span>}
                             </>
                         ) : (
-                            <span className="text-gray-300 text-xs">仅查看</span>
+                            <span className="text-gray-300 text-xs">-</span>
                         )}
                      </div>
                   </td>
