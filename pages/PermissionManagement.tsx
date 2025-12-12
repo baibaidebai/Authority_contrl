@@ -68,6 +68,9 @@ export const PermissionManagement: React.FC = () => {
       const hasChildren = node.children && node.children.length > 0;
       const isHidden = hiddenMenuIds.includes(node.id);
       const Icon = node.icon || (hasChildren ? Folder : FileText);
+      
+      // Calculate child count for display (Dynamic Badge)
+      const childCount = node.children ? node.children.length : 0;
 
       return (
         <div key={node.id} className="select-none">
@@ -105,6 +108,13 @@ export const PermissionManagement: React.FC = () => {
                    </div>
                    <span className="text-xs text-gray-400">ID: {node.id}</span>
                </div>
+               
+               {/* Display Total Child Count (Static Badge for Config) */}
+               {childCount > 0 && !isHidden && (
+                   <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-100 text-red-600 text-xs font-bold" title="Total Menu Items">
+                       {childCount}
+                   </span>
+               )}
             </div>
 
             {/* Right Side: Toggle Action */}

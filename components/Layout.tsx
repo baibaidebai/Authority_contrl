@@ -31,6 +31,7 @@ export interface MenuItem {
 }
 
 // Exporting the static menu definition so it can be used in PermissionManagement
+// Removed hardcoded badges to allow dynamic calculation
 export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
     { 
       id: 'dashboard', 
@@ -42,7 +43,6 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       id: 'authority',
       label: '权限管理',
       icon: Settings2,
-      badge: 3,
       children: [
         { id: 'user', label: '用户维护', icon: User, path: '/users', requiredPermission: '查询用户' },
         { id: 'role', label: '角色维护', icon: Shield, path: '/roles', requiredPermission: '角色管理' },
@@ -53,7 +53,6 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       id: 'audit',
       label: '业务审核',
       icon: CheckCircle,
-      badge: 3,
       requiredPermission: '业务审核', // Control access to the entire Audit module
       children: [
         { id: 'auth_real', label: '实名认证审核', icon: CheckCircle, path: '/audit/real-name' },
@@ -65,7 +64,6 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       id: 'business',
       label: '业务管理',
       icon: Grid,
-      badge: 7,
       requiredPermission: '业务管理', // Control access to the entire Business Management module
       children: [
         { id: 'cert', label: '资质维护', icon: Grid, path: '/business/cert' },
@@ -149,11 +147,15 @@ export const Layout: React.FC = () => {
         .map(item => {
             if (item.children) {
                 const visibleChildren = getVisibleMenus(item.children);
-                // Optional: If parent has no visible children, hide parent? 
-                // Currently keeping parent if it passes permission check itself.
-                // But usually better UX: hide parent if all children are hidden.
-                // Let's attach the filtered children
-                return { ...item, children: visibleChildren };
+                
+                // Dynamic Badge: Calculate based on VISIBLE children
+                const count = visibleChildren.length;
+
+                return { 
+                    ...item, 
+                    children: visibleChildren,
+                    badge: count > 0 ? count : undefined
+                };
             }
             return item;
         })
