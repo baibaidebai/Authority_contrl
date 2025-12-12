@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { 
@@ -16,40 +16,22 @@ import {
   HelpCircle,
   User as UserIcon,
   MessageSquare,
-  Cog
+  Cog,
+  Menu
 } from 'lucide-react';
 
-interface MenuItem {
+export interface MenuItem {
   id: string;
   label: string;
   icon: React.ElementType;
   path?: string;
   badge?: number;
   children?: MenuItem[];
+  requiredPermission?: string; // New: Permission required to view this menu
 }
 
-export const Layout: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    'authority': true,
-    'audit': false,
-    'business': false
-  });
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-
-  const toggleMenu = (id: string) => {
-    setExpandedMenus(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  // Menu Definition based on Reference/main.html
-  const menuItems: MenuItem[] = [
+// Exporting the static menu definition so it can be used in PermissionManagement
+export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
     { 
       id: 'dashboard', 
       label: '控制面板', 
@@ -62,9 +44,9 @@ export const Layout: React.FC = () => {
       icon: Settings2,
       badge: 3,
       children: [
-        { id: 'user', label: '用户维护', icon: User, path: '/users' },
-        { id: 'role', label: '角色维护', icon: Shield, path: '/roles' },
-        { id: 'perm', label: '菜单维护', icon: Lock, path: '/permissions' },
+        { id: 'user', label: '用户维护', icon: User, path: '/users', requiredPermission: '查询用户' },
+        { id: 'role', label: '角色维护', icon: Shield, path: '/roles', requiredPermission: '角色管理' },
+        { id: 'perm', label: '菜单维护', icon: Lock, path: '/permissions', requiredPermission: '角色管理' },
       ]
     },
     {
@@ -99,7 +81,89 @@ export const Layout: React.FC = () => {
       icon: List,
       path: '/params'
     }
-  ];
+];
+
+export const Layout: React.FC = () => {
+  const { user, logout, hasPermission } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    'authority': true,
+    'audit': false,
+    'business': false
+  });
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [hiddenMenuIds, setHiddenMenuIds] = useState<string[]>([]);
+
+  // Load hidden state and listen for changes
+  useEffect(() => {
+    const loadHiddenState = () => {
+        try {
+            const stored = localStorage.getItem('rbac_hidden_menus');
+            if (stored) {
+                setHiddenMenuIds(JSON.parse(stored));
+            }
+        } catch (e) {
+            console.error("Failed to parse hidden menus", e);
+        }
+    };
+
+    loadHiddenState();
+
+    // Listen for custom event from PermissionManagement
+    const handleMenuChange = () => loadHiddenState();
+    window.addEventListener('menu_config_updated', handleMenuChange);
+
+    return () => {
+        window.removeEventListener('menu_config_updated', handleMenuChange);
+    };
+  }, []);
+
+  const toggleMenu = (id: string) => {
+    setExpandedMenus(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  // Helper to filter menus based on hidden IDs AND RBAC Permissions
+  const getVisibleMenus = (items: MenuItem[]): MenuItem[] => {
+      return items
+        .filter(item => {
+            // 1. Check Local Hidden Config
+            if (hiddenMenuIds.includes(item.id)) return false;
+            
+            // 2. Check RBAC Permission
+            // If the item has a requiredPermission, check if user has it.
+            // If item has no requiredPermission, it defaults to Visible (public to auth users).
+            if (item.requiredPermission && !hasPermission(item.requiredPermission)) {
+                return false;
+            }
+            return true;
+        })
+        .map(item => {
+            if (item.children) {
+                const visibleChildren = getVisibleMenus(item.children);
+                // Optional: If parent has no visible children, hide parent? 
+                // Currently keeping parent if it passes permission check itself.
+                // But usually better UX: hide parent if all children are hidden.
+                // Let's attach the filtered children
+                return { ...item, children: visibleChildren };
+            }
+            return item;
+        })
+        // Filter out parents that became empty after permission filtering (only if they are containers with no path)
+        .filter(item => {
+            if (item.children && item.children.length === 0 && !item.path) {
+                return false;
+            }
+            return true;
+        });
+  };
+
+  const visibleMenuItems = getVisibleMenus(SYSTEM_MENU_STRUCTURE);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -157,7 +221,7 @@ export const Layout: React.FC = () => {
         <aside className="fixed left-0 top-[50px] bottom-0 w-[240px] bg-white border-r border-gray-200 overflow-y-auto z-40">
           <div className="py-2">
             <ul className="space-y-1">
-              {menuItems.map(item => {
+              {visibleMenuItems.map(item => {
                 const isActive = item.path === location.pathname;
                 const isExpanded = expandedMenus[item.id];
                 const hasChildren = item.children && item.children.length > 0;
