@@ -1,0 +1,68 @@
+USE Authority_Contrl_Developer;
+
+-- 用户表
+DROP TABLE IF EXISTS User;
+CREATE TABLE User (
+    ID INT UNSIGNED AUTO_INCREMENT,
+    name VARCHAR(20) NOT NULL UNIQUE,
+    password CHAR(60) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (ID),
+    INDEX idx_user_name (name)
+) ENGINE=InnoDB;
+
+-- 角色表
+DROP TABLE IF EXISTS Role;
+CREATE TABLE Role (
+    ID INT UNSIGNED AUTO_INCREMENT,
+    name VARCHAR(20) NOT NULL UNIQUE,
+    PRIMARY KEY (ID),
+    INDEX idx_role_name (name)
+) ENGINE=InnoDB;
+
+INSERT INTO Role(name) VALUES ('管理员'), ('普通用户');
+
+-- 权限/功能表（原 Function，现改名为 Permission）
+DROP TABLE IF EXISTS Permission;
+CREATE TABLE Permission (
+    ID INT UNSIGNED AUTO_INCREMENT,
+    name VARCHAR(20) NOT NULL,
+    super_ID INT UNSIGNED NULL,  -- 指向父权限（自引用）
+    PRIMARY KEY (ID),
+    FOREIGN KEY (super_ID) REFERENCES Permission(ID) ON DELETE SET NULL,
+    INDEX idx_permission_super (super_ID)
+) ENGINE=InnoDB;
+
+-- 插入权限数据
+INSERT INTO Permission(name, super_ID) VALUES
+('用户管理', NULL),
+('添加用户', 1),
+('删除用户', 1),
+('修改用户', 1),
+('查询用户', 1),
+('角色管理', NULL),
+('添加角色', 6);
+
+-- 用户-角色关联表
+DROP TABLE IF EXISTS UserRole;
+CREATE TABLE UserRole (
+    user_ID INT UNSIGNED,
+    role_ID INT UNSIGNED,
+    PRIMARY KEY (user_ID, role_ID),
+    FOREIGN KEY (user_ID) REFERENCES User(ID) ON DELETE CASCADE,
+    FOREIGN KEY (role_ID) REFERENCES Role(ID) ON DELETE CASCADE,
+    INDEX idx_userrole_user (user_ID),
+    INDEX idx_userrole_role (role_ID)
+) ENGINE=InnoDB;
+
+-- 角色-权限关联表（原 RoleFunction）
+DROP TABLE IF EXISTS RolePermission;
+CREATE TABLE RolePermission (
+    role_ID INT UNSIGNED,
+    permission_ID INT UNSIGNED,
+    PRIMARY KEY (role_ID, permission_ID),
+    FOREIGN KEY (role_ID) REFERENCES Role(ID) ON DELETE CASCADE,
+    FOREIGN KEY (permission_ID) REFERENCES Permission(ID) ON DELETE CASCADE,
+    INDEX idx_roleperm_role (role_ID),
+    INDEX idx_roleperm_perm (permission_ID)
+) ENGINE=InnoDB;

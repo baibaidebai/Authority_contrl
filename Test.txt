@@ -1,0 +1,64 @@
+-- 清除可能的旧测试数据（谨慎在生产环境使用）
+DELETE FROM RolePermission;
+DELETE FROM UserRole;
+DELETE FROM User WHERE name IN ('admin', 'editor', 'viewer', 'dualuser');
+-- 注意：Role 和 Permission 表保留初始结构
+
+-- 1. 插入测试用户
+-- 注意：为了适配当前的简单后端（明文比对），这里使用 'password' 作为密码
+-- 如果后端升级为 bcrypt，请使用对应的 hash 值
+INSERT INTO User (name, password) VALUES
+('admin',    'password'),
+('editor',   'password'),
+('viewer',   'password'),
+('dualuser', 'password');
+
+-- 2. 新增“内容编辑者”角色（确保不重复插入）
+INSERT IGNORE INTO Role (name) VALUES ('内容编辑者');
+
+-- 获取 Permission ID（避免硬编码）
+SET @perm_add_user = (SELECT ID FROM Permission WHERE name = '添加用户');
+SET @perm_del_user = (SELECT ID FROM Permission WHERE name = '删除用户');
+SET @perm_upd_user = (SELECT ID FROM Permission WHERE name = '修改用户');
+SET @perm_sel_user = (SELECT ID FROM Permission WHERE name = '查询用户');
+SET @perm_add_role = (SELECT ID FROM Permission WHERE name = '添加角色');
+SET @perm_role_mgr = (SELECT ID FROM Permission WHERE name = '角色管理');
+SET @perm_user_mgr = (SELECT ID FROM Permission WHERE name = '用户管理');
+
+-- 获取 Role ID
+SET @role_admin = (SELECT ID FROM Role WHERE name = '管理员');
+SET @role_viewer = (SELECT ID FROM Role WHERE name = '普通用户');
+SET @role_editor = (SELECT ID FROM Role WHERE name = '内容编辑者');
+
+-- 管理员：拥有所有权限
+INSERT INTO RolePermission (role_ID, permission_ID)
+SELECT @role_admin, ID FROM Permission
+ON DUPLICATE KEY UPDATE permission_ID = permission_ID;
+
+-- 内容编辑者：仅用户管理相关操作 (CRUD 用户)
+INSERT INTO RolePermission (role_ID, permission_ID) VALUES
+(@role_editor, @perm_add_user),
+(@role_editor, @perm_del_user),
+(@role_editor, @perm_upd_user),
+(@role_editor, @perm_sel_user)
+ON DUPLICATE KEY UPDATE permission_ID = permission_ID;
+
+-- 查看者/普通用户：仅查询用户
+INSERT INTO RolePermission (role_ID, permission_ID) VALUES
+(@role_viewer, @perm_sel_user)
+ON DUPLICATE KEY UPDATE permission_ID = permission_ID;
+
+-- 4. 分配用户到角色
+INSERT INTO UserRole (user_ID, role_ID) VALUES
+-- admin → 管理员
+((SELECT ID FROM User WHERE name = 'admin'), @role_admin),
+
+-- editor → 内容编辑者
+((SELECT ID FROM User WHERE name = 'editor'), @role_editor),
+
+-- viewer → 普通用户
+((SELECT ID FROM User WHERE name = 'viewer'), @role_viewer),
+
+-- dualuser → 管理员 + 普通用户 (多角色测试)
+((SELECT ID FROM User WHERE name = 'dualuser'), @role_admin),
+((SELECT ID FROM User WHERE name = 'dualuser'), @role_viewer);

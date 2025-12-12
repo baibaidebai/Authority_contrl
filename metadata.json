@@ -1,0 +1,5 @@
+{
+  "name": "RBAC Authority System",
+  "description": "A complete Role-Based Access Control system demonstrating user management, role definition, and dynamic permission enforcement. Features a simulated backend for full functionality in the browser.",
+  "requestFramePermissions": []
+}
