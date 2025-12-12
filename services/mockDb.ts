@@ -1,17 +1,16 @@
 import { User, Role, PermissionItem } from '../types';
 
-// Detect the environment to choose the best API URL.
-// 1. If running on localhost/127.0.0.1, point to port 3001 (standard local dev).
-// 2. If running elsewhere (e.g. cloud IDE), try relative path '/api' assuming a proxy is set up, 
-//    or fallback to the hostname on port 3001.
+// Using the Backend API which connects to the Remote Database (101.132.178.161)
+// The filename 'mockDb' is kept for project structure consistency but it performs real API calls.
+
 const getApiBase = () => {
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
+    // Standardize to use port 3001 for the backend service
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return `http://${hostname}:3001/api`;
     }
-    // Fallback for cloud environments or custom setups
-    // You might need to adjust this if your backend is hosted on a specific URL
+    // For other environments, assume the API is on the same host port 3001
     return `http://${hostname}:3001/api`; 
   }
   return 'http://127.0.0.1:3001/api';
@@ -101,7 +100,7 @@ export const deleteUser = async (userId: number) => {
 };
 
 export const findUserByCredentials = async (name: string, password: string): Promise<User | undefined> => {
-  // Special handling for login to catch 401 specifically
+  // Login against the real database via backend
   const response = await fetch(`${API_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -118,7 +117,6 @@ export const findUserByCredentials = async (name: string, password: string): Pro
   return response.json();
 };
 
-// New function for impersonation
 export const loginAsUser = async (userId: number): Promise<User> => {
     return request<User>('/login-as', {
         method: 'POST',
