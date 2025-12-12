@@ -43,7 +43,9 @@ async function initializeDatabase() {
     }
 
     // 2. Ensure Essential Permissions Exist (Complete the set)
-    const essentialPerms = ['修改角色', '删除角色'];
+    // Added: '业务审核', '业务管理', '参数管理' for new module protection
+    const essentialPerms = ['修改角色', '删除角色', '业务审核', '业务管理', '参数管理'];
+    
     // Assuming '角色管理' exists as parent based on CreatTable.txt, usually ID 6
     // We try to find '角色管理' ID dynamically
     const [roleMgrPerm] = await conn.query("SELECT ID FROM Permission WHERE name = '角色管理'");
@@ -53,7 +55,16 @@ async function initializeDatabase() {
         const [exists] = await conn.query("SELECT ID FROM Permission WHERE name = ?", [permName]);
         if (exists.length === 0) {
             console.log(`Seeding missing permission: ${permName}`);
-            await conn.query("INSERT INTO Permission (name, super_ID) VALUES (?, ?)", [permName, parentId]);
+            // For the new business modules, we set parent to NULL (root level) or appropriate parent if exists.
+            // For simplicity in this auto-seeder, we default to NULL or existing logic.
+            // Let's keep parentId for role related, but null for business ones if distinct logic is needed.
+            // To keep it simple: insert them as root level permissions if they are main modules.
+            let specificParentId = parentId; 
+            if (['业务审核', '业务管理', '参数管理'].includes(permName)) {
+                specificParentId = null; 
+            }
+            
+            await conn.query("INSERT INTO Permission (name, super_ID) VALUES (?, ?)", [permName, specificParentId]);
         }
     }
 
@@ -63,10 +74,10 @@ async function initializeDatabase() {
     if (allPerms.length > 0) {
         // Check if admin has all perms
         const [currentAdminPerms] = await conn.query("SELECT count(*) as count FROM RolePermission WHERE role_ID = ?", [adminRoleId]);
+        // Re-sync if counts differ (simple heuristic)
         if (currentAdminPerms[0].count < allPerms.length) {
             console.log("Updating Admin permissions to include all available system permissions...");
             // Use IGNORE to avoid duplicates if partial exist, or DELETE/INSERT strategy
-            // Here we use ON DUPLICATE KEY logic via a loop or batch insert ignore
             const values = allPerms.map(p => [adminRoleId, p.ID]);
             // Simple way: clear and re-add for admin (safest for consistency)
             await conn.query("DELETE FROM RolePermission WHERE role_ID = ?", [adminRoleId]);

@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { Plus, Edit, Trash2, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const getPageConfig = (path: string) => {
     if (path.includes('cert')) return { title: '资质维护', columns: ['资质ID', '资质名称', '有效期', '适用范围'] };
@@ -15,8 +16,23 @@ const getPageConfig = (path: string) => {
 };
 
 export const BusinessManagement: React.FC = () => {
+    const { hasPermission } = useAuth();
     const location = useLocation();
     const { title, columns } = getPageConfig(location.pathname);
+
+    if (!hasPermission('业务管理')) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                <div className="bg-red-50 p-6 rounded-full mb-4">
+                    <Lock className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">访问被拒绝</h2>
+                <p className="text-gray-600 max-w-md">
+                    您当前的角色没有访问 <strong>业务管理</strong> 模块的权限。请联系管理员申请授权。
+                </p>
+            </div>
+        );
+    }
 
     // Mock Data Generator
     const rows = Array.from({ length: 5 }).map((_, i) => ({

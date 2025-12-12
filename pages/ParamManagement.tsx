@@ -1,8 +1,10 @@
 import React from 'react';
 import { Button } from '../components/Button';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export const ParamManagement: React.FC = () => {
+    const { hasPermission } = useAuth();
     const params = [
         { key: 'SYSTEM_NAME', label: '系统名称', value: 'RBAC 权限管理系统', type: 'text' },
         { key: 'MAX_LOGIN_ATTEMPTS', label: '最大登录尝试次数', value: '5', type: 'number' },
@@ -11,6 +13,20 @@ export const ParamManagement: React.FC = () => {
         { key: 'SMTP_SERVER', label: '邮件服务器地址', value: 'smtp.example.com', type: 'text' },
         { key: 'MAINTENANCE_MODE', label: '维护模式', value: 'false', type: 'boolean' },
     ];
+
+    if (!hasPermission('参数管理')) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                <div className="bg-red-50 p-6 rounded-full mb-4">
+                    <Lock className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">访问被拒绝</h2>
+                <p className="text-gray-600 max-w-md">
+                    您当前的角色没有访问 <strong>参数管理</strong> 模块的权限。请联系管理员申请授权。
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6 animate-fade-in">

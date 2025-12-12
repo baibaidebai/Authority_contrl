@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '../components/Button';
-import { CheckCircle, XCircle, FileText } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 // Demo Data Generators
 const getDemoData = (type: string) => {
@@ -31,10 +32,25 @@ const getPageTitle = (path: string) => {
 };
 
 export const BusinessAudit: React.FC = () => {
+    const { hasPermission } = useAuth();
     const location = useLocation();
     const type = location.pathname.split('/').pop() || '';
     const title = getPageTitle(location.pathname);
     const data = getDemoData(type);
+
+    if (!hasPermission('业务审核')) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center text-center p-12">
+                <div className="bg-red-50 p-6 rounded-full mb-4">
+                    <Lock className="w-12 h-12 text-red-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">访问被拒绝</h2>
+                <p className="text-gray-600 max-w-md">
+                    您当前的角色没有访问 <strong>业务审核</strong> 模块的权限。请联系管理员申请授权。
+                </p>
+            </div>
+        );
+    }
 
     const handleAudit = (id: number, approved: boolean) => {
         alert(`[演示] 审核操作已提交: \nID: ${id}\n结果: ${approved ? '通过' : '驳回'}`);

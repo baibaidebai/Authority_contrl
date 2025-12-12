@@ -54,6 +54,7 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       label: '业务审核',
       icon: CheckCircle,
       badge: 3,
+      requiredPermission: '业务审核', // Control access to the entire Audit module
       children: [
         { id: 'auth_real', label: '实名认证审核', icon: CheckCircle, path: '/audit/real-name' },
         { id: 'auth_adv', label: '广告审核', icon: CheckCircle, path: '/audit/advertisement' },
@@ -65,6 +66,7 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       label: '业务管理',
       icon: Grid,
       badge: 7,
+      requiredPermission: '业务管理', // Control access to the entire Business Management module
       children: [
         { id: 'cert', label: '资质维护', icon: Grid, path: '/business/cert' },
         { id: 'type', label: '分类管理', icon: Grid, path: '/business/type' },
@@ -79,7 +81,8 @@ export const SYSTEM_MENU_STRUCTURE: MenuItem[] = [
       id: 'param',
       label: '参数管理',
       icon: List,
-      path: '/params'
+      path: '/params',
+      requiredPermission: '参数管理' // Control access to Parameter Management
     }
 ];
 
